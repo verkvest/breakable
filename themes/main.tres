@@ -1,22 +1,106 @@
-[gd_resource type="Theme" load_steps=2 format=2]
+[gd_resource type="Theme" load_steps=6 format=3]
 
-[ext_resource path="res://fonts/ricasso_font.tres" type="DynamicFont" id=1]
+[ext_resource type="FontFile" path="res://fonts/Nunito-SemiBold.ttf" id="1_font"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_normal"]
+bg_color = Color(0.07, 0.18, 0.22, 0.94)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.36, 0.75, 0.68, 0.9)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+content_margin_left = 18.0
+content_margin_top = 14.0
+content_margin_right = 18.0
+content_margin_bottom = 14.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hover"]
+bg_color = Color(0.1, 0.28, 0.32, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.85, 0.78, 0.45, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+content_margin_left = 18.0
+content_margin_top = 14.0
+content_margin_right = 18.0
+content_margin_bottom = 14.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pressed"]
+bg_color = Color(0.93, 0.72, 0.32, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.9, 0.6, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+content_margin_left = 18.0
+content_margin_top = 14.0
+content_margin_right = 18.0
+content_margin_bottom = 14.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.05, 0.12, 0.15, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.36, 0.75, 0.68, 0.7)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
 
 [resource]
-
-default_font = ExtResource( 1 )
-Button/colors/font_color = Color( 0.303863, 0.839844, 0.299643, 1 )
-Button/colors/font_color_disabled = Color( 0.753906, 0.753906, 0.753906, 0.2 )
-Button/colors/font_color_hover = Color( 0.303711, 0.839844, 0.299561, 1 )
-Button/colors/font_color_pressed = Color( 1, 1, 1, 1 )
-Button/constants/hseparation = 2
-Button/fonts/font = null
-Button/styles/disabled = null
-Button/styles/focus = null
-Button/styles/hover = null
-Button/styles/normal = null
-Button/styles/pressed = null
-GridContainer/constants/hseparation = 4
-GridContainer/constants/vseparation = 4
-_sections_unfolded = [ "GridContainer", "GridContainer/constants" ]
-
+default_font = ExtResource("1_font")
+default_font_size = 34
+Button/colors/font_color = Color(0.93, 0.97, 0.95, 1)
+Button/colors/font_disabled_color = Color(0.7, 0.75, 0.74, 0.45)
+Button/colors/font_focus_color = Color(1, 0.95, 0.8, 1)
+Button/colors/font_hover_color = Color(1, 0.97, 0.88, 1)
+Button/colors/font_pressed_color = Color(0.1, 0.12, 0.1, 1)
+Button/font_sizes/font_size = 34
+Button/styles/disabled = SubResource("StyleBoxFlat_normal")
+Button/styles/focus = SubResource("StyleBoxFlat_hover")
+Button/styles/hover = SubResource("StyleBoxFlat_hover")
+Button/styles/normal = SubResource("StyleBoxFlat_normal")
+Button/styles/pressed = SubResource("StyleBoxFlat_pressed")
+CheckButton/colors/font_color = Color(0.93, 0.97, 0.95, 1)
+CheckButton/font_sizes/font_size = 32
+Label/colors/font_color = Color(0.93, 0.97, 0.95, 1)
+Label/font_sizes/font_size = 32
+LineEdit/colors/font_color = Color(0.96, 0.98, 0.96, 1)
+LineEdit/colors/font_placeholder_color = Color(0.75, 0.82, 0.8, 0.7)
+LineEdit/colors/caret_color = Color(0.95, 0.82, 0.4, 1)
+LineEdit/font_sizes/font_size = 34
+LineEdit/styles/focus = SubResource("StyleBoxFlat_hover")
+LineEdit/styles/normal = SubResource("StyleBoxFlat_panel")
+LineEdit/styles/read_only = SubResource("StyleBoxFlat_panel")
+OptionButton/colors/font_color = Color(0.93, 0.97, 0.95, 1)
+OptionButton/font_sizes/font_size = 32
+OptionButton/styles/normal = SubResource("StyleBoxFlat_normal")
+OptionButton/styles/hover = SubResource("StyleBoxFlat_hover")
+OptionButton/styles/pressed = SubResource("StyleBoxFlat_pressed")
+PopupMenu/colors/font_color = Color(0.93, 0.97, 0.95, 1)
+PopupMenu/colors/font_hover_color = Color(0.08, 0.1, 0.1, 1)
+PopupMenu/font_sizes/font_size = 32
+PopupMenu/styles/hover = SubResource("StyleBoxFlat_pressed")
+PopupMenu/styles/panel = SubResource("StyleBoxFlat_panel")
+Panel/styles/panel = SubResource("StyleBoxFlat_panel")
+RichTextLabel/colors/default_color = Color(0.93, 0.97, 0.95, 1)
+RichTextLabel/font_sizes/normal_font_size = 28

@@ -1,163 +1,89 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=5 format=3]
 
-[ext_resource path="res://hi_scores/hi_scores.gd" type="Script" id=1]
-[ext_resource path="res://textures/black.png" type="Texture" id=2]
-[ext_resource path="res://themes/main.tres" type="Theme" id=3]
+[ext_resource type="Script" path="res://hi_scores/hi_scores.gd" id="1_scores"]
+[ext_resource type="Material" path="res://materials/background_material.tres" id="2_bg"]
+[ext_resource type="Theme" path="res://themes/main.tres" id="3_theme"]
+[ext_resource type="Script" path="res://ui/safe_margin.gd" id="4_safe"]
 
-[node name="Hiscores" type="Node" index="0"]
-
-script = ExtResource( 1 )
-
-[node name="Background" type="Sprite" parent="." index="0"]
-
-texture = ExtResource( 2 )
-offset = Vector2( 512, 384 )
-region_enabled = true
-region_rect = Rect2( 0, 0, 1024, 768 )
-_sections_unfolded = [ "Material" ]
-
-[node name="MainMenu" type="Button" parent="." index="1"]
-
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-margin_left = -103.0
-margin_top = -68.0
-margin_right = 103.0
-margin_bottom = -46.0
-rect_pivot_offset = Vector2( 0, 0 )
-focus_mode = 2
-mouse_filter = 0
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-theme = ExtResource( 3 )
-toggle_mode = false
-enabled_focus_mode = 2
-shortcut = null
-group = null
-text = "BTN_MAIN_MENU"
-flat = false
-align = 1
-_sections_unfolded = [ "Theme" ]
-
-[node name="VBoxContainer" type="VBoxContainer" parent="." index="2"]
-
-anchor_left = 0.0
-anchor_top = 0.0
+[node name="HiScores" type="Control"]
+layout_mode = 3
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-margin_left = 200.0
-margin_top = 90.0
-margin_right = -200.0
-margin_bottom = -110.0
-rect_pivot_offset = Vector2( 0, 0 )
-mouse_filter = 1
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-theme = ExtResource( 3 )
-alignment = 0
-_sections_unfolded = [ "Anchor", "Margin", "Theme" ]
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("3_theme")
+script = ExtResource("1_scores")
 
-[node name="Title" type="Label" parent="VBoxContainer" index="0"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
-margin_right = 624.0
-margin_bottom = 16.0
-rect_pivot_offset = Vector2( 0, 0 )
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
-mouse_default_cursor_shape = 0
+color = Color(0.03, 0.08, 0.11, 1)
+material = ExtResource("2_bg")
+
+[node name="Safe" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("4_safe")
+
+[node name="Column" type="VBoxContainer" parent="Safe"]
+layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 1
+size_flags_vertical = 3
+theme_override_constants/separation = 18
+
+[node name="Title" type="Label" parent="Safe/Column"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.86, 0.48, 1)
+theme_override_font_sizes/font_size = 52
 text = "HI_SCORES"
-align = 1
-percent_visible = 1.0
-lines_skipped = 0
-max_lines_visible = -1
-_sections_unfolded = [ "Size Flags", "Theme" ]
+horizontal_alignment = 1
 
-[node name="GridContainer" type="GridContainer" parent="VBoxContainer" index="1"]
+[node name="Empty" type="Label" parent="Safe/Column"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 30
+text = "EMPTY_SCORES"
+horizontal_alignment = 1
+vertical_alignment = 1
 
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
-margin_top = 20.0
-margin_right = 624.0
-margin_bottom = 50.0
-rect_pivot_offset = Vector2( 0, 0 )
-mouse_filter = 1
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 1
-columns = 3
-_sections_unfolded = [ "Size Flags" ]
+[node name="List" type="HBoxContainer" parent="Safe/Column"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 16
 
-[node name="Pos" type="Label" parent="VBoxContainer/GridContainer" index="0"]
+[node name="Pos" type="Label" parent="Safe/Column/List"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+horizontal_alignment = 2
 
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
-margin_right = 60.0
-margin_bottom = 30.0
-rect_min_size = Vector2( 60, 30 )
-rect_pivot_offset = Vector2( 0, 0 )
-mouse_filter = 2
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 4
-percent_visible = 1.0
-lines_skipped = 0
-max_lines_visible = -1
-_sections_unfolded = [ "Rect" ]
+[node name="Name" type="Label" parent="Safe/Column/List"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 30
+clip_text = true
 
-[node name="Name" type="Label" parent="VBoxContainer/GridContainer" index="1"]
+[node name="Score" type="Label" parent="Safe/Column/List"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.86, 1, 1)
+theme_override_font_sizes/font_size = 30
+horizontal_alignment = 2
 
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
-margin_left = 64.0
-margin_right = 414.0
-margin_bottom = 30.0
-rect_min_size = Vector2( 350, 30 )
-rect_pivot_offset = Vector2( 0, 0 )
-mouse_filter = 2
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 4
-percent_visible = 1.0
-lines_skipped = 0
-max_lines_visible = -1
-_sections_unfolded = [ "Rect" ]
+[node name="Back" type="Button" parent="Safe/Column"]
+custom_minimum_size = Vector2(0, 84)
+layout_mode = 2
+text = "BTN_MAIN_MENU"
 
-[node name="Score" type="Label" parent="VBoxContainer/GridContainer" index="2"]
-
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
-margin_left = 418.0
-margin_right = 568.0
-margin_bottom = 30.0
-rect_min_size = Vector2( 150, 30 )
-rect_pivot_offset = Vector2( 0, 0 )
-mouse_filter = 2
-mouse_default_cursor_shape = 0
-size_flags_horizontal = 1
-size_flags_vertical = 4
-align = 2
-percent_visible = 1.0
-lines_skipped = 0
-max_lines_visible = -1
-_sections_unfolded = [ "Rect" ]
-
-[connection signal="pressed" from="MainMenu" to="." method="_on_MainMenu_pressed"]
-
-
+[connection signal="pressed" from="Safe/Column/Back" to="." method="_on_back_pressed"]

@@ -1,20 +1,19 @@
-
 extends Node2D
 
-var total_bricks setget set_total_bricks, get_total_bricks
-var lb
+var total_bricks := 0
 
-func load_level(level):
-	var level_builder=load("res://level/"+str(level)+".gd")
-	lb = level_builder.new()
-	for i in range (get_child_count()):
-		get_child(i).queue_free()
-	total_bricks=lb.init_level(self)
-	
 
-func set_total_bricks(tb):
-	total_bricks=tb
-	
-func get_total_bricks():
+func load_level(level: int) -> void:
+	var doomed: Array = []
+	for child in get_children():
+		doomed.append(child)
+	for child in doomed:
+		remove_child(child)
+		child.queue_free()
+	var builder_script = load("res://level/%d.gd" % level)
+	var builder = builder_script.new()
+	total_bricks = int(builder.init_level(self))
+
+
+func get_total_bricks() -> int:
 	return total_bricks
-	

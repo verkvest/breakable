@@ -1,22 +1,15 @@
-
 extends Node
 
 
-func _ready():
-
-	#full screen
-	var options = $"/root/options_manager".read_options()
-	if(options.has("full_screen")):
-		OS.set_window_fullscreen(options.full_screen)
-
-	#language
-	if(options.has("locale")):
-		TranslationServer.set_locale(options.locale)
-	else:
-		if OS.get_locale().begins_with("fr") || OS.get_locale().begins_with("en"):
-			TranslationServer.set_locale(OS.get_locale())
-
-	#load first scene
-	$"/root/global".load_menu()
-
-
+func _ready() -> void:
+	var args := OS.get_cmdline_user_args()
+	if args.has("--shot-menu") or args.has("--shot-play") or args.has("--smoke"):
+		return
+	var options: Dictionary = options_manager.read_options()
+	if bool(options.get("full_screen", false)):
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	if options.has("locale"):
+		TranslationServer.set_locale(str(options.locale))
+	elif OS.get_locale().begins_with("fr"):
+		TranslationServer.set_locale("fr")
+	global.load_menu()

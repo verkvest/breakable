@@ -1,0 +1,180 @@
+# Release Android App Bundle and APK (targetSdk 36) plus phone-viewport screenshots.
+# Signs with ANDROID_KEYSTORE_B64 / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS
+# when those secrets exist. Otherwise uploads a debug-signed APK.
+name: android
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    tags: ["android-*"]
+
+env:
+  GODOT_VERSION: 4.7.2-stable
+  GODOT_TEMPLATE_VERSION: 4.7.2.stable
+  MARKETING_VERSION: "0.1.0"
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Display libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb unzip ca-certificates \
+            libx11-6 libxcursor1 libxinerama1 libxrandr2 libxi6 \
+            libgl1 libglu1-mesa libfontconfig1 libxext6 libxrender1 \
+            mesa-vulkan-drivers libgl1-mesa-dri
+          sudo apt-get install -y --no-install-recommends libasound2t64 || sudo apt-get install -y --no-install-recommends libasound2
+      - name: Godot 4.7.2
+        run: |
+          curl -fsSL -o /tmp/godot.zip \
+            "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d /tmp/godot-bin
+          chmod +x /tmp/godot-bin/Godot_v${GODOT_VERSION}_linux.x86_64
+          echo "GODOT=/tmp/godot-bin/Godot_v${GODOT_VERSION}_linux.x86_64" >> "$GITHUB_ENV"
+      - name: Import and capture phone screenshots
+        env:
+          SHOT_DIR: ${{ github.workspace }}/screenshots/phone
+        run: |
+          mkdir -p "$SHOT_DIR"
+          "$GODOT" --headless --path . --import
+          xvfb-run -a -s "-screen 0 420x900x24" \
+            "$GODOT" --display-driver x11 --audio-driver Dummy \
+            --rendering-method gl_compatibility --resolution 390x844 \
+            --path . -- --shot-menu
+          xvfb-run -a -s "-screen 0 420x900x24" \
+            "$GODOT" --display-driver x11 --audio-driver Dummy \
+            --rendering-method gl_compatibility --resolution 390x844 \
+            --path . -- --shot-play
+          ls -la "$SHOT_DIR"
+          file "$SHOT_DIR"/*.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: phone-screenshots
+          path: screenshots/phone/*.png
+          if-no-files-found: error
+
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Android SDK 36
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends unzip wget
+          mkdir -p "$HOME/android-sdk/cmdline-tools"
+          wget -q -O /tmp/cmdtools.zip https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
+          unzip -q /tmp/cmdtools.zip -d "$HOME/android-sdk/cmdline-tools"
+          mv "$HOME/android-sdk/cmdline-tools/cmdline-tools" "$HOME/android-sdk/cmdline-tools/latest"
+          echo "ANDROID_HOME=$HOME/android-sdk" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> "$GITHUB_ENV"
+          yes | "$HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$HOME/android-sdk" \
+            "platforms;android-36" "build-tools;36.1.0" "platform-tools" "ndk;29.0.14206865"
+      - name: Godot 4.7.2 and export templates
+        run: |
+          curl -fsSL -o /tmp/godot.zip \
+            "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d /tmp/godot-bin
+          chmod +x /tmp/godot-bin/Godot_v${GODOT_VERSION}_linux.x86_64
+          echo "GODOT=/tmp/godot-bin/Godot_v${GODOT_VERSION}_linux.x86_64" >> "$GITHUB_ENV"
+          curl -fsSL -o /tmp/templates.tpz \
+            "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_export_templates.tpz"
+          rm -rf /tmp/tpl
+          unzip -q /tmp/templates.tpz -d /tmp/tpl
+          DEST="$HOME/.local/share/godot/export_templates/${GODOT_TEMPLATE_VERSION}"
+          mkdir -p "$DEST"
+          cp -a /tmp/tpl/templates/. "$DEST/"
+          test -f "$DEST/android_source.zip"
+      - name: Editor settings for the Android SDK
+        run: |
+          mkdir -p "$HOME/.config/godot"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          body = """[gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path = "%s"
+          export/android/java_sdk_path = "%s"
+          """ % (os.environ["ANDROID_HOME"], os.environ["JAVA_HOME"])
+          dest = Path.home() / ".config" / "godot"
+          for name in ("editor_settings-4.tres", "editor_settings-4.7.tres"):
+              (dest / name).write_text(body)
+              print("wrote", dest / name)
+          PY
+      - name: Install the Android build template
+        run: |
+          SRC="$HOME/.local/share/godot/export_templates/${GODOT_TEMPLATE_VERSION}/android_source.zip"
+          test -f "$SRC"
+          rm -rf android/build
+          mkdir -p android/build
+          unzip -q "$SRC" -d android/build
+          printf '%s\n' "${GODOT_TEMPLATE_VERSION}" > android/.build_version
+          : > android/build/.gdignore
+          chmod +x android/build/gradlew
+          test -f android/build/build.gradle
+      - name: Stamp version and export
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          mkdir -p build/android
+          if [ -n "$ANDROID_KEYSTORE_B64" ] && [ -n "$ANDROID_KEYSTORE_PASSWORD" ] && [ -n "$ANDROID_KEY_ALIAS" ]; then
+            printf '%s' "$ANDROID_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
+            export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/release.keystore"
+            SIGNED=1
+          else
+            echo "::notice::Android keystore secrets are absent – exporting a debug-signed APK."
+            SIGNED=0
+          fi
+          python3 tools/stamp_export.py
+          "$GODOT" --headless --path . --import
+          if [ "$SIGNED" = "1" ]; then
+            "$GODOT" --headless --path . --export-release "Android APK" build/android/clinkwell.apk
+            "$GODOT" --headless --path . --export-release "Android AAB" build/android/clinkwell.aab
+          else
+            "$GODOT" --headless --path . --export-debug "Android APK" build/android/clinkwell-debug.apk
+          fi
+          find build/android -type f -name '*.apk' -o -name '*.aab' | tee /tmp/packages.txt
+          test -s /tmp/packages.txt
+          # Confirm targetSdk 36 from the packaged manifest when aapt is available.
+          AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt | sort | tail -1)
+          APK=$(find build/android -name '*.apk' | head -1)
+          if [ -n "$AAPT" ] && [ -n "$APK" ]; then
+            "$AAPT" dump badging "$APK" | tee /tmp/badging.txt | head -20
+            grep -q "targetSdkVersion:'36'" /tmp/badging.txt
+          fi
+          if [ "$SIGNED" = "1" ]; then
+            AAB=$(find build/android -name '*.aab' | head -1)
+            test -n "$AAB"
+            BUNDLE=$(find "$ANDROID_HOME/build-tools" -name bundletool.jar -o -name aapt2 | head -1)
+            # aapt cannot read AAB manifests. The gradle manifest is the source of truth;
+            # dump it from the intermediate AndroidManifest if the package has one.
+            MANIFEST=$(find android/aab -name AndroidManifest.xml | head -1 || true)
+            if [ -n "$MANIFEST" ]; then
+              grep -n "targetSdk" "$MANIFEST" || true
+            fi
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-packages
+          path: |
+            build/android/*.apk
+            build/android/*.aab
+          if-no-files-found: ignore

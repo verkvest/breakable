@@ -1,0 +1,196 @@
+# Export the Godot iOS project, archive it, sign with automatic cloud-managed
+# signing, and upload to TestFlight.
+#
+# Manual run, pull requests, or a tag testflight-*. Skips signing (green) when
+# the App Store Connect API secrets are absent.
+#
+# Secrets (GitHub → Settings → Secrets → Actions; never commit them):
+#   APPSTORE_API_KEY_P8      – AuthKey PEM, or base64 of that PEM
+#   APPSTORE_API_KEY_ID
+#   APPSTORE_API_ISSUER_ID
+# The key needs Admin or App Manager so Xcode can create the distribution
+# certificate and provisioning profile. The App Store Connect app record for
+# es.verkvest.clinkwell must exist before the first upload (the API cannot
+# create that record).
+name: ios-testflight
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    tags: ["testflight-*"]
+
+env:
+  TEAM_ID: 38PT254HDZ
+  BUNDLE_ID: es.verkvest.clinkwell
+  APP_VERSION: "0.1.0"
+  GODOT_VERSION: 4.7.2-stable
+  GODOT_TEMPLATE_VERSION: 4.7.2.stable
+
+jobs:
+  testflight:
+    runs-on: macos-15
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      actions: write
+    env:
+      HAS_KEY: ${{ secrets.APPSTORE_API_KEY_P8 != '' && secrets.APPSTORE_API_KEY_ID != '' && secrets.APPSTORE_API_ISSUER_ID != '' }}
+    steps:
+      - name: Check secrets
+        run: |
+          if [ "$HAS_KEY" != "true" ]; then
+            echo "::notice::App Store Connect API key secrets are not set – skipping signing and upload."
+          fi
+
+      - uses: actions/checkout@v4
+        if: env.HAS_KEY == 'true'
+
+      - name: Tools + Xcode 26 (App Store requires the iOS 26 SDK)
+        if: env.HAS_KEY == 'true'
+        run: |
+          X=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | grep -vi beta | sort -V | tail -1)
+          [ -n "$X" ] && sudo xcode-select -s "$X"
+          xcodebuild -version
+          python3 -m venv "$RUNNER_TEMP/py"
+          "$RUNNER_TEMP/py/bin/pip" install --quiet pyjwt cryptography
+          echo "PY=$RUNNER_TEMP/py/bin/python" >> "$GITHUB_ENV"
+
+      - name: Godot 4.7.2 and export templates
+        if: env.HAS_KEY == 'true'
+        run: |
+          mkdir -p "$RUNNER_TEMP/godot"
+          curl -fsSL -o "$RUNNER_TEMP/godot/godot.zip" \
+            "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_macos.universal.zip"
+          unzip -q "$RUNNER_TEMP/godot/godot.zip" -d "$RUNNER_TEMP/godot"
+          GODOT=$(find "$RUNNER_TEMP/godot" -type f -path '*.app/Contents/MacOS/Godot' | head -1)
+          echo "GODOT=$GODOT" >> "$GITHUB_ENV"
+          curl -fsSL -o "$RUNNER_TEMP/godot/templates.tpz" \
+            "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_export_templates.tpz"
+          rm -rf "$RUNNER_TEMP/tpl"
+          unzip -q "$RUNNER_TEMP/godot/templates.tpz" -d "$RUNNER_TEMP/tpl"
+          DEST="$HOME/Library/Application Support/Godot/export_templates/${GODOT_TEMPLATE_VERSION}"
+          mkdir -p "$DEST"
+          cp -a "$RUNNER_TEMP/tpl/templates/." "$DEST/"
+          test -f "$DEST/ios.zip"
+
+      - name: Install API key
+        if: env.HAS_KEY == 'true'
+        env:
+          APPSTORE_API_KEY_P8: ${{ secrets.APPSTORE_API_KEY_P8 }}
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          KEYFILE=~/.appstoreconnect/private_keys/AuthKey_${APPSTORE_API_KEY_ID}.p8
+          if printf '%s' "$APPSTORE_API_KEY_P8" | grep -q "BEGIN PRIVATE KEY"; then
+            printf '%s\n' "$APPSTORE_API_KEY_P8" > "$KEYFILE"
+          else
+            printf '%s' "$APPSTORE_API_KEY_P8" | base64 --decode > "$KEYFILE"
+          fi
+          chmod 600 "$KEYFILE"
+          echo "KEYFILE=$KEYFILE" >> "$GITHUB_ENV"
+          echo "APPSTORE_API_KEY_PATH=$KEYFILE" >> "$GITHUB_ENV"
+
+      - name: Register bundle id if missing
+        if: env.HAS_KEY == 'true'
+        env:
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+          BUNDLE_NAME: Clinkwell
+        run: |
+          "$PY" tools/asc_bundle_id.py
+
+      - name: Stamp build number and export the Xcode project
+        if: env.HAS_KEY == 'true'
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+          MARKETING_VERSION: ${{ env.APP_VERSION }}
+        run: |
+          python3 tools/stamp_export.py
+          mkdir -p build/ios
+          "$GODOT" --headless --path . --export-release "iOS" build/ios/Clinkwell.ipa
+          find build/ios -maxdepth 3 -type d -name '*.xcodeproj' -o -name '*.xcworkspace' | head
+          # Guarantee the encryption declaration even if the preset plist snippet is ignored.
+          while IFS= read -r PLIST; do
+            if /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST" >/dev/null 2>&1; then
+              /usr/libexec/PlistBuddy -c 'Delete :ITSAppUsesNonExemptEncryption' "$PLIST" 2>/dev/null || true
+              /usr/libexec/PlistBuddy -c 'Add :ITSAppUsesNonExemptEncryption bool false' "$PLIST"
+              /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${BUILD_NUMBER}" "$PLIST" || \
+                /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string ${BUILD_NUMBER}" "$PLIST"
+              /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${APP_VERSION}" "$PLIST" || true
+              echo "patched $PLIST"
+              /usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$PLIST"
+            fi
+          done < <(find build/ios -name Info.plist -not -path '*xcuserdata*')
+
+      - name: Archive (unsigned; distribution signing happens at export)
+        if: env.HAS_KEY == 'true'
+        env:
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+        run: |
+          PROJ=$(find build/ios -maxdepth 3 -name '*.xcodeproj' | head -1)
+          test -n "$PROJ"
+          SCHEME=$(xcodebuild -project "$PROJ" -list | awk '/Schemes:/{getline; gsub(/^ +/,""); print; exit}')
+          echo "project=$PROJ scheme=$SCHEME"
+          xcodebuild -project "$PROJ" -scheme "$SCHEME" -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Clinkwell.xcarchive" \
+            -allowProvisioningUpdates -authenticationKeyPath "$KEYFILE" \
+            -authenticationKeyID "$APPSTORE_API_KEY_ID" -authenticationKeyIssuerID "$APPSTORE_API_ISSUER_ID" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            SKIP_INSTALL=NO INSTALL_PATH=/Applications \
+            archive | tee "$RUNNER_TEMP/archive.log" | tail -80
+          test ${PIPESTATUS[0]} -eq 0
+          find "$RUNNER_TEMP/Clinkwell.xcarchive" -maxdepth 3 | head -30
+          /usr/libexec/PlistBuddy -c Print "$RUNNER_TEMP/Clinkwell.xcarchive/Info.plist"
+
+      - name: Export with App Store distribution signing and upload to TestFlight
+        if: env.HAS_KEY == 'true'
+        env:
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>export</string>
+            <key>teamID</key><string>${TEAM_ID}</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Clinkwell.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates -authenticationKeyPath "$KEYFILE" \
+            -authenticationKeyID "$APPSTORE_API_KEY_ID" -authenticationKeyIssuerID "$APPSTORE_API_ISSUER_ID"
+          ls -la "$RUNNER_TEMP/export"
+          set +e
+          xcrun altool --upload-app -t ios -f "$RUNNER_TEMP"/export/*.ipa \
+            --apiKey "$APPSTORE_API_KEY_ID" --apiIssuer "$APPSTORE_API_ISSUER_ID" 2>&1 | tee "$RUNNER_TEMP/upload.log"
+          set -e
+          if grep -E -q "ERROR|error:|Unable to upload|Validation failed" "$RUNNER_TEMP/upload.log"; then
+            if grep -E -q "Cannot determine the Apple ID|No suitable application records|does not exist|record was not found|App Store Connect app" "$RUNNER_TEMP/upload.log"; then
+              echo "::error::No App Store Connect app record for ${BUNDLE_ID} yet. Create it in App Store Connect → Apps → + (the API cannot create the app record), then re-run this workflow."
+            else
+              echo "::error::TestFlight upload failed. See the upload log."
+            fi
+            exit 1
+          fi
+          echo "::notice::Uploaded ${BUNDLE_ID} ${APP_VERSION} (${{ github.run_number }}) to App Store Connect"
+
+      - uses: actions/upload-artifact@v4
+        if: always() && env.HAS_KEY == 'true'
+        with:
+          name: testflight-logs
+          path: |
+            ${{ runner.temp }}/archive.log
+            ${{ runner.temp }}/upload.log
+          if-no-files-found: ignore
+
+      - name: Cleanup key
+        if: always()
+        run: rm -rf ~/.appstoreconnect/private_keys

@@ -1,19 +1,33 @@
-extends Panel
+extends Control
+
+var delegate
 
 
-var delegate #defined
-var score setget setScore
+func _ready() -> void:
+	visible = false
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-func _ready():
-	var line_edit = $CenterContainer/VBoxContainer/LineEdit
-	line_edit.select_all()
-	line_edit.grab_focus()
 
-func _on_ButtonOK_pressed():
-	var playername = $CenterContainer/VBoxContainer/LineEdit.text
-	if delegate.has_method("close_hi_score_dialog"):
-		delegate.close_hi_score_dialog(self,playername)
+func show_for(value: int, new_delegate) -> void:
+	delegate = new_delegate
+	$Card/Column/Value.text = str(value)
+	$Card/Column/Name.text = ""
+	visible = true
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	$Card/Column/Name.grab_focus()
 
-func setScore(newScore):
-	$CenterContainer/VBoxContainer/score_label.text = str(newScore)
 
+func _submit() -> void:
+	var field := $Card/Column/Name as LineEdit
+	var playername: String = field.text if field else ""
+	if delegate and delegate.has_method("close_hi_score_dialog"):
+		delegate.close_hi_score_dialog(self, playername)
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+
+func _on_ok_pressed() -> void:
+	_submit()
+
+
+func _on_name_submitted(_new_text: String) -> void:
+	_submit()

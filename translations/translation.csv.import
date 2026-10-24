@@ -2,15 +2,18 @@
 
 importer="csv_translation"
 type="Translation"
+uid="uid://b1pufvoyx6tcb"
 
 [deps]
 
-files=[ "res://translations/translation.fr.translation", "res://translations/translation.en.translation" ]
+files=["res://translations/translation.en.translation", "res://translations/translation.fr.translation"]
 
 source_file="res://translations/translation.csv"
-dest_files=[ "res://translations/translation.fr.translation", "res://translations/translation.en.translation" ]
+dest_files=["res://translations/translation.en.translation", "res://translations/translation.fr.translation"]
 
 [params]
 
-compress=true
+compress=1
 delimiter=0
+unescape_keys=false
+unescape_translations=true
