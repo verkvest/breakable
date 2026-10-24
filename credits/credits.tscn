@@ -1,0 +1,70 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://credits/credits.gd" id="1_credits"]
+[ext_resource type="Material" path="res://materials/background_material.tres" id="2_bg"]
+[ext_resource type="Theme" path="res://themes/main.tres" id="3_theme"]
+[ext_resource type="Script" path="res://ui/safe_margin.gd" id="4_safe"]
+
+[node name="Credits" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("3_theme")
+script = ExtResource("1_credits")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.03, 0.08, 0.11, 1)
+material = ExtResource("2_bg")
+
+[node name="Safe" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("4_safe")
+
+[node name="Column" type="VBoxContainer" parent="Safe"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="Safe/Column"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.86, 0.48, 1)
+theme_override_font_sizes/font_size = 52
+text = "BTN_CREDITS"
+horizontal_alignment = 1
+
+[node name="Scroll" type="ScrollContainer" parent="Safe/Column"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Body" type="RichTextLabel" parent="Safe/Column/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+autowrap_mode = 3
+
+[node name="Back" type="Button" parent="Safe/Column"]
+custom_minimum_size = Vector2(0, 84)
+layout_mode = 2
+text = "BTN_MAIN_MENU"
+
+[connection signal="pressed" from="Safe/Column/Back" to="." method="_on_back_pressed"]

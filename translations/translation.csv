@@ -1,23 +1,31 @@
-,fr,en
-BONUS_SCORE,1000 points de plus,1000 more points
-BONUS_STICKY,GLU,Sticky
-BONUS_THREE_BALLS,3 BALLES,3 BALLS
-BONUS_EXTRA_LIFE,1 vie supplémentaire,1 Extra Life
-BONUS_SMALL_PADDLE,Petite raquette,Small paddle
-BONUS_BIG_PADDLE,Grande raquette,Big paddle
+keys,en,fr
+BONUS_SCORE,1000 more points,1000 points de plus
+BONUS_STICKY,Sticky,Glu
+BONUS_THREE_BALLS,3 balls,3 balles
+BONUS_EXTRA_LIFE,1 extra life,1 vie de plus
+BONUS_SMALL_PADDLE,Small paddle,Petite raquette
+BONUS_BIG_PADDLE,Big paddle,Grande raquette
 SCORE,Score,Score
-BTN_CONTINUE,Continuer,Continue
-BTN_ABANDON,Abandonner,Abandon
-GAME_OVER,Game over,Game over
-BTN_PLAY_AGAIN,Rejouer,Play again
-BTN_MAIN_MENU,Menu principal,Main menu
-HI_SCORES,HI SCORES,HI SCORES
-BTN_NEW_GAME,Nouvelle partie,New game
-BTN_HI_SCORES,Hi scores,Hi scores
+BTN_CONTINUE,Continue,Continuer
+BTN_ABANDON,Leave game,Abandonner
+GAME_OVER,Game over,Partie terminée
+BTN_PLAY_AGAIN,Play again,Rejouer
+BTN_MAIN_MENU,Main menu,Menu principal
+HI_SCORES,High scores,Meilleurs scores
+BTN_NEW_GAME,New game,Nouvelle partie
+BTN_HI_SCORES,High scores,Meilleurs scores
 BTN_OPTIONS,Options,Options
-BTN_QUIT,Quitter,Quit
-NEW_HI_SCORE,Nouveau record,New Hi Score
-ENTER_YOUR_NAME,Entrez votre nom,Enter your name
+BTN_QUIT,Quit,Quitter
+BTN_CREDITS,Credits,Crédits
+BTN_PAUSE,Pause,Pause
+NEW_HI_SCORE,New high score,Nouveau record
+ENTER_YOUR_NAME,Enter your name,Entrez votre nom
 BTN_OK,OK,OK
-LANGUAGE,Langue,Language
-FULL_SCREEN,Plein écran,Full screen
+LANGUAGE,Language,Langue
+FULL_SCREEN,Full screen,Plein écran
+TAGLINE,Keep the ball. Break the court.,Garde la balle. Casse la cour.
+HINT_TOUCH,Drag to move - tap to launch,Glisser pour bouger - toucher pour lancer
+LEVEL_CLEAR,Level clear,Niveau terminé
+EMPTY_SCORES,No scores yet,Pas encore de score
+CREDITS_INTRO,Clinkwell is a portrait remake of Breakable.,Clinkwell est une reprise portrait de Breakable.
+PAUSE_TITLE,Paused,Pause

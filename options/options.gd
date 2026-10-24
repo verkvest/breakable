@@ -1,35 +1,41 @@
+extends Control
 
-extends Node
+var options: Dictionary = {}
+var languages := ["en", "fr"]
 
-#autoload singletons
-# global
 
-onready var options = $"/root/options_manager".read_options()
-onready var languages = ["en","fr"]
+func _ready() -> void:
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	options = options_manager.read_options()
+	var current := TranslationServer.get_locale()
+	var picker: OptionButton = $Safe/Center/Column/Language
+	for i in languages.size():
+		picker.add_item(languages[i].to_upper(), i)
+		if current.begins_with(languages[i]):
+			picker.select(i)
+	var fullscreen := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+	$Safe/Center/Column/Fullscreen.button_pressed = fullscreen
+	if OS.has_feature("mobile"):
+		$Safe/Center/Column/Fullscreen.visible = false
 
-func _ready():
-	var currentLang = TranslationServer.get_locale()
-	for i in range(languages.size()):
-		$GridContainer/LanguageOption.add_item(languages[i],i)
-		if(languages[i]==currentLang):
-			$GridContainer/LanguageOption.select(i)
-	
-	if(OS.is_window_fullscreen()):
-		$GridContainer/ScreenOption.pressed = true
-		
 
-func _on_MainMenu_pressed():
+func _on_back_pressed() -> void:
 	global.load_menu()
 
-func _on_LanguageOption_item_selected( id ):
-	TranslationServer.set_locale(languages[id])
-	options["locale"]=languages[id]
-	$"/root/options_manager".write_options(options)
-	global.load_options() #reload the scene when language changes
+
+func _on_language_selected(index: int) -> void:
+	if index < 0 or index >= languages.size():
+		return
+	var locale := languages[index]
+	TranslationServer.set_locale(locale)
+	options["locale"] = locale
+	options_manager.write_options(options)
+	global.load_options()
 
 
-func _on_ScreenOption_toggled( pressed ):
-	OS.set_window_fullscreen( pressed )
-	options["full_screen"]=pressed
-	$"/root/options_manager".write_options(options)
-
+func _on_fullscreen_toggled(pressed: bool) -> void:
+	DisplayServer.window_set_mode(
+		DisplayServer.WINDOW_MODE_FULLSCREEN if pressed else DisplayServer.WINDOW_MODE_WINDOWED
+	)
+	options["full_screen"] = pressed
+	options_manager.write_options(options)

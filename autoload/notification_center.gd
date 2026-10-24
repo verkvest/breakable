@@ -5,35 +5,38 @@ extends Node
 # Written by Didier Vandekerckhove
 # licence: MIT
 
-var notifications
+var notifications: Dictionary = {}
 
-func _ready():
-	notifications = {};
-	pass
-	
-func post_notification(notificationName,notificationData):
-	if notifications.has(notificationName):
-		var currentObservers=notifications[notificationName].observers
-		for i in currentObservers:
-			var anObserver =  currentObservers[i]
-			if anObserver.object.has_method(anObserver.action):
-				anObserver.object.call(anObserver.action,anObserver.object,notificationName,notificationData)
 
-func add_observer(observer,notificationName,action):
-	if not notifications.has(notificationName):
-		notifications[notificationName]={
-			"observers":{}
-		}
-	var currentObservers=notifications[notificationName].observers
-	currentObservers[observer.get_instance_id()]={
-		"object":observer,
-		"action":action
+func _ready() -> void:
+	notifications = {}
+
+
+func post_notification(notification_name: String, notification_data) -> void:
+	if not notifications.has(notification_name):
+		return
+	var current_observers: Dictionary = notifications[notification_name].observers
+	for id in current_observers.keys():
+		var an_observer: Dictionary = current_observers[id]
+		var obj = an_observer.object
+		if is_instance_valid(obj) and obj.has_method(an_observer.action):
+			obj.call(an_observer.action, obj, notification_name, notification_data)
+
+
+func add_observer(observer: Object, notification_name: String, action: String) -> void:
+	if not notifications.has(notification_name):
+		notifications[notification_name] = {"observers": {}}
+	var current_observers: Dictionary = notifications[notification_name].observers
+	current_observers[observer.get_instance_id()] = {
+		"object": observer,
+		"action": action,
 	}
 
-func remove_observer(observer, notificationName):
-	if notifications.has(notificationName):
-		var currentObservers=notifications[notificationName].observers
-		if currentObservers.has(observer.get_instance_id()):
-			currentObservers.erase(observer.get_instance_id())
 
-
+func remove_observer(observer: Object, notification_name: String) -> void:
+	if not notifications.has(notification_name):
+		return
+	var current_observers: Dictionary = notifications[notification_name].observers
+	var id := observer.get_instance_id()
+	if current_observers.has(id):
+		current_observers.erase(id)

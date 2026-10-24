@@ -1,56 +1,54 @@
-tool
 extends StaticBody2D
 
-# a generic wall that can be made horizontal or vertical in the editor
-# it adjusts its collision shape accordingly
+@export var orientation := "horizontal"
+@export var color := Color(0.2, 0.72, 0.62, 1)
+@export var width := 16.0
+@export var length := 400.0
 
-export (String, "horizontal","vertical") var orientation setget set_orientation
-export (Color, RGBA) var color setget set_color
-export (float) var width=10 setget set_width
-export (float) var length=512 setget set_length
-var shape_owner
 
-func _ready():
-	if orientation==null:
-		orientation="horizontal"
+func _ready() -> void:
+	var mat := PhysicsMaterial.new()
+	mat.friction = 0.0
+	mat.bounce = 1.0
+	physics_material_override = mat
 	update_wall()
 
 
-
-func update_wall():
-	if !get_shape_owners().empty(): # the function can be called before the shape owner is created
-		var so = get_shape_owners()[0]
-		self.shape_owner_clear_shapes(so)
-		var r = RectangleShape2D.new()
-		if(orientation=="horizontal"):
-			r.set_extents(Vector2(length/2,width/2))
-		else:
-			r.set_extents(Vector2(width/2,length/2))
-		self.shape_owner_add_shape(so,r)
-		update()
-
-
-func _draw():
-	var r
-	if(orientation=="horizontal"):
-		r = Rect2(-length/2,-width/2,length,width)
+func update_wall() -> void:
+	var col := get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if col == null:
+		return
+	var shape := RectangleShape2D.new()
+	if orientation == "horizontal":
+		shape.size = Vector2(length, width)
 	else:
-		r = Rect2(-width/2,-length/2,width,length)
-	draw_rect(r,color)
+		shape.size = Vector2(width, length)
+	col.shape = shape
+	queue_redraw()
 
 
-func set_orientation(o):
-	orientation=o
+func _draw() -> void:
+	var rect := Rect2(-length * 0.5, -width * 0.5, length, width)
+	if orientation != "horizontal":
+		rect = Rect2(-width * 0.5, -length * 0.5, width, length)
+	draw_rect(rect, color)
+
+
+func set_orientation(value: String) -> void:
+	orientation = value
 	update_wall()
 
-func set_color(c):
-	color=c
-	update()
 
-func set_width(w):
-	width=w
+func set_color(value: Color) -> void:
+	color = value
+	queue_redraw()
+
+
+func set_width(value: float) -> void:
+	width = value
 	update_wall()
 
-func set_length(l):
-	length=l
+
+func set_length(value: float) -> void:
+	length = value
 	update_wall()

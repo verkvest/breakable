@@ -1,31 +1,37 @@
-
 extends Node2D
 
-#autoload singletons
-# global
-
-var bw
-var bh
-var hp setget set_hp #bricks have hit points
-var current_hp setget set_current_hp
-
-func _ready():
-	bw=global.BRICK_WIDTH
-	bh=global.BRICK_HEIGHT
-	var rh = RectangleShape2D.new()
-	rh.set_extents(Vector2(bw/2.2,bh/2.2))
-	var shape_owner_id = $brick_body.create_shape_owner($brick_body)
-	$brick_body.shape_owner_clear_shapes(shape_owner_id)
-	$brick_body.shape_owner_add_shape(shape_owner_id,rh)
+var hp := 1
+var current_hp := 1
 
 
-func set_hp(new_hp):
+func _ready() -> void:
+	var mat := PhysicsMaterial.new()
+	mat.friction = 0.0
+	mat.bounce = 1.0
+	$brick_body.physics_material_override = mat
+	_fit()
+
+
+func _fit() -> void:
+	var m: Dictionary = global.metrics()
+	var bw: float = m.brick_w
+	var bh: float = m.brick_h
+	var shape := RectangleShape2D.new()
+	shape.size = Vector2(bw * 0.96, bh * 0.9)
+	$brick_body/CollisionShape2D.shape = shape
+	var sprite: Sprite2D = $Sprite2D
+	if sprite.texture:
+		var tex := sprite.texture.get_size()
+		sprite.scale = Vector2(bw / tex.x, bh / tex.y)
+
+
+func set_hp(new_hp: int) -> void:
 	hp = new_hp
 	set_current_hp(hp)
 
-func set_current_hp(new_hp):
-	current_hp=new_hp
-	if(current_hp>0):
-		$Sprite.set_texture(global.brick_texture[current_hp]) #change texture according to current hp
 
-
+func set_current_hp(new_hp: int) -> void:
+	current_hp = new_hp
+	if current_hp > 0 and current_hp < global.brick_texture.size():
+		$Sprite2D.texture = global.brick_texture[current_hp]
+		_fit()

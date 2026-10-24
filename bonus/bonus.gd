@@ -1,34 +1,34 @@
-
 extends RigidBody2D
 
-#autoload singletons
-# global
-
-var effect
-
-func _ready():
-	var sum=0 #sum of bonus coefficients
-	for i in global.bonus_effect:
-		sum+=global.bonus_effect[i]
-
-	var choice = randi()%sum #with this we choose a bonus in the list
-	sum=0
-	effect =""
-	for i in global.bonus_effect:
-		sum+=global.bonus_effect[i]
-		if(choice<=sum) and effect =="":
-			effect = i
-
-	if(global.bonus_texture.has(effect)):
-		$sprite.set_texture(global.bonus_texture[effect]) #the texture of the chosen bonus
+var effect := ""
 
 
-#func _draw(): #for tests only
-#	draw_circle(Vector2(),10,Color(0,0.8,0,1))
-#
+func _ready() -> void:
+	gravity_scale = 0.0
+	can_sleep = false
+	lock_rotation = true
+	var sum := 0
+	for key in global.bonus_effect.keys():
+		sum += int(global.bonus_effect[key])
+	var choice := randi() % maxi(sum, 1)
+	var running := 0
+	effect = ""
+	for key in global.bonus_effect.keys():
+		running += int(global.bonus_effect[key])
+		if choice <= running and effect == "":
+			effect = str(key)
+	if global.bonus_texture.has(effect):
+		$sprite.texture = global.bonus_texture[effect]
+	var m: Dictionary = global.metrics()
+	var target: float = m.brick_h * 1.2
+	if $sprite.texture:
+		var tex: Vector2 = $sprite.texture.get_size()
+		$sprite.scale = Vector2(target / tex.x, target / tex.y)
+	var shape := CircleShape2D.new()
+	shape.radius = target * 0.42
+	$CollisionShape2D.shape = shape
 
 
-func start():
-	set_linear_velocity(Vector2(0,150)) #immediate slow fall
-
-
+func start() -> void:
+	var m: Dictionary = global.metrics()
+	linear_velocity = Vector2(0, m.height * 0.28)

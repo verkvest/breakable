@@ -1,124 +1,63 @@
-[gd_scene load_steps=19 format=2]
+[gd_scene load_steps=12 format=3]
 
-[ext_resource path="res://board/board.gd" type="Script" id=1]
-[ext_resource path="res://bonus_effect_manager/bonus_effect_manager.tscn" type="PackedScene" id=2]
-[ext_resource path="res://materials/background_material.tres" type="Material" id=3]
-[ext_resource path="res://textures/black.png" type="Texture" id=4]
-[ext_resource path="res://board/arealost.gd" type="Script" id=5]
-[ext_resource path="res://board/collision.gd" type="Script" id=6]
-[ext_resource path="res://level/level.tscn" type="PackedScene" id=7]
-[ext_resource path="res://wall/wall.tscn" type="PackedScene" id=8]
-[ext_resource path="res://game_ui/game_ui.tscn" type="PackedScene" id=9]
-[ext_resource path="res://paddle/paddle.tscn" type="PackedScene" id=10]
-[ext_resource path="res://sounds/pad.wav" type="AudioStream" id=11]
-[ext_resource path="res://sounds/wall.wav" type="AudioStream" id=12]
-[ext_resource path="res://sounds/brick01.wav" type="AudioStream" id=13]
+[ext_resource type="Script" path="res://board/board.gd" id="1_board"]
+[ext_resource type="PackedScene" path="res://bonus_effect_manager/bonus_effect_manager.tscn" id="2_fx"]
+[ext_resource type="Material" path="res://materials/background_material.tres" id="3_bg"]
+[ext_resource type="PackedScene" path="res://level/level.tscn" id="4_level"]
+[ext_resource type="PackedScene" path="res://wall/wall.tscn" id="5_wall"]
+[ext_resource type="PackedScene" path="res://game_ui/game_ui.tscn" id="6_ui"]
+[ext_resource type="PackedScene" path="res://paddle/paddle.tscn" id="7_paddle"]
+[ext_resource type="AudioStream" path="res://sounds/pad.wav" id="8_pad"]
+[ext_resource type="AudioStream" path="res://sounds/wall.wav" id="9_wall"]
+[ext_resource type="AudioStream" path="res://sounds/brick01.wav" id="10_brick"]
 
-[sub_resource type="RectangleShape2D" id=1]
-extents = Vector2( 512, 5 )
-
-[sub_resource type="PhysicsMaterial" id=2]
-friction = 0.0
-bounce = 1.0
-
-[sub_resource type="PhysicsMaterial" id=3]
-friction = 0.0
-bounce = 1.0
-
-[sub_resource type="PhysicsMaterial" id=4]
-friction = 0.0
-bounce = 1.0
-
-[sub_resource type="Animation" id=5]
-length = 2.0
-tracks/0/type = "method"
-tracks/0/path = NodePath(".")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/keys = {
-"times": PoolRealArray( 0, 2 ),
-"transitions": PoolRealArray( 1, 1 ),
-"values": [ {
-"args": [  ],
-"method": ""
-}, {
-"args": [  ],
-"method": "init_level"
-} ]
-}
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lost"]
+size = Vector2(720, 28)
 
 [node name="board" type="Node"]
-script = ExtResource( 1 )
+script = ExtResource("1_board")
 
-[node name="bonus_effect_manager" parent="." instance=ExtResource( 2 )]
+[node name="BackgroundLayer" type="CanvasLayer" parent="."]
+layer = -10
 
-[node name="background" type="Sprite" parent="."]
-material = ExtResource( 3 )
-texture = ExtResource( 4 )
-centered = false
-region_enabled = true
-region_rect = Rect2( 0, 0, 1024, 768 )
+[node name="Background" type="ColorRect" parent="BackgroundLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.03, 0.08, 0.11, 1)
+material = ExtResource("3_bg")
+
+[node name="bonus_effect_manager" parent="." instance=ExtResource("2_fx")]
+
+[node name="level" parent="." instance=ExtResource("4_level")]
+
+[node name="left_wall" parent="." instance=ExtResource("5_wall")]
+
+[node name="top_wall" parent="." instance=ExtResource("5_wall")]
+
+[node name="right_wall" parent="." instance=ExtResource("5_wall")]
 
 [node name="area_lost" type="Area2D" parent="."]
-position = Vector2( 512, 736 )
+collision_layer = 0
 collision_mask = 3
-script = ExtResource( 5 )
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="area_lost"]
-shape = SubResource( 1 )
-script = ExtResource( 6 )
+shape = SubResource("RectangleShape2D_lost")
 
-[node name="level" parent="." instance=ExtResource( 7 )]
+[node name="paddle" parent="." instance=ExtResource("7_paddle")]
 
-[node name="left_wall" parent="." instance=ExtResource( 8 )]
-position = Vector2( 5, 385 )
-physics_material_override = SubResource( 2 )
-orientation = "vertical"
-color = Color( 0, 0.333333, 0, 1 )
-width = 20.0
-length = 768.0
-
-[node name="top_wall" parent="." instance=ExtResource( 8 )]
-position = Vector2( 512, 5 )
-physics_material_override = SubResource( 3 )
-orientation = "horizontal"
-color = Color( 0, 0.333333, 0, 1 )
-length = 1024.0
-
-[node name="right_wall" parent="." instance=ExtResource( 8 )]
-position = Vector2( 1019, 385 )
-physics_material_override = SubResource( 4 )
-orientation = "vertical"
-color = Color( 0, 0.333333, 0, 1 )
-length = 768.0
-
-[node name="game_ui" parent="." instance=ExtResource( 9 )]
-position = Vector2( 21, 723 )
-
-[node name="paddle" parent="." instance=ExtResource( 10 )]
-position = Vector2( 512, 700 )
-
-[node name="board_animation" type="AnimationPlayer" parent="."]
-anims/level_transition = SubResource( 5 )
-
-[node name="level_complete" type="Label" parent="."]
-margin_left = 0.420906
-margin_right = 1019.42
-margin_bottom = 768.0
-align = 1
-valign = 1
-__meta__ = {
-"_edit_use_anchors_": false
-}
+[node name="game_ui" parent="." instance=ExtResource("6_ui")]
 
 [node name="pad_sound" type="AudioStreamPlayer" parent="."]
-stream = ExtResource( 11 )
+stream = ExtResource("8_pad")
 
 [node name="wall_sound" type="AudioStreamPlayer" parent="."]
-stream = ExtResource( 12 )
+stream = ExtResource("9_wall")
 
 [node name="brick_sound" type="AudioStreamPlayer" parent="."]
-stream = ExtResource( 13 )
+stream = ExtResource("10_brick")
+
 [connection signal="body_entered" from="area_lost" to="." method="_on_area_lost_body_entered"]

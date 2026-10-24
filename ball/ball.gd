@@ -1,102 +1,112 @@
-
 extends RigidBody2D
 
-#autoload singletons:
-# - nc: notification center
+var speed := 400.0
+var active := false
+var relative_pos_x := 0.0
+var board
+var paddle_position := Vector2.ZERO
+var is_starting := false
 
 
-var speed setget set_speed, get_speed # ball speed
-var active setget set_active #boolean true is ball is active (playing)
-var relative_pos_x =0 #  ball position relative to the paddle, used to calculate the bounce angle
-var board # the board object, must be set by the object creating the ball
-var paddle_position = Vector2() #for the sticky bonus
-var is_starting = false # for the first call to integrate_forces
-
-func _ready():
+func _ready() -> void:
+	var mat := PhysicsMaterial.new()
+	mat.friction = 0.0
+	mat.bounce = 1.0
+	physics_material_override = mat
+	gravity_scale = 0.0
+	contact_monitor = true
+	max_contacts_reported = 4
+	can_sleep = false
+	lock_rotation = true
+	continuous_cd = RigidBody2D.CCD_MODE_CAST_RAY
+	var radius := float(global.metrics().ball_r)
+	var shape := CircleShape2D.new()
+	shape.radius = radius
+	$CollisionShape2D.shape = shape
+	$Sprite2D.queue_redraw()
 	set_active(false)
-	nc.add_observer(self,"paddle_hit","paddle_hit") #What the ball should do when it hits the paddle
-	nc.add_observer(self,"paddle_moved","follow_paddle") #when game starts (or sticky bonus), the ball follows the paddle
+	nc.add_observer(self, "paddle_hit", "paddle_hit")
+	nc.add_observer(self, "paddle_moved", "follow_paddle")
 
-func _integrate_forces(state):
+
+func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 	if is_starting:
-		state.transform.origin = paddle_position
+		state.transform = Transform2D(0.0, paddle_position)
 		is_starting = false
-	elif board && board.sticky && !active:
-		state.transform.origin = paddle_position
+	elif board and board.sticky and not active:
+		state.transform = Transform2D(0.0, paddle_position)
 
 
-func _on_ball_body_entered( body ):
-	if(body.name=="brick_body"): 
+func _exit_tree() -> void:
+	nc.remove_observer(self, "paddle_moved")
+	nc.remove_observer(self, "paddle_hit")
+
+
+func _on_ball_body_entered(body: Node) -> void:
+	if body.name == "brick_body":
 		var brick = body.get_parent()
-		nc.post_notification( "brick_hit",{"brick":brick,"ball":self}) #let other objects know that the ball touched a brick
-	elif(body.name.find("wall")>0):
-		nc.post_notification( "wall_hit","")  #let other objects know that the ball hit a wall
+		nc.post_notification("brick_hit", {"brick": brick, "ball": self})
+	elif "wall" in body.name:
+		nc.post_notification("wall_hit", "")
 
 
-func _exit_tree():
-	#always clean notifications
-	nc.remove_observer(self,"paddle_moved") 
-	nc.remove_observer(self,"paddle_hit")
-
-
-func _on_ball_body_exited( body ):
-	var lv=get_linear_velocity().normalized()*speed
-	set_linear_velocity(lv)
-	if(body.name=="brick_body"):
+func _on_ball_body_exited(body: Node) -> void:
+	linear_velocity = linear_velocity.normalized() * speed
+	if body.name == "brick_body":
 		adjust_angle()
 
 
-func adjust_angle():
-	#here we cheat with the angle to make the game more enjoyable
-	var min_angle = 20 #below 20, it's too horizontal
-	var lv=get_linear_velocity().normalized()*speed  #current velocity
-	var angle = rad2deg(lv.angle_to(Vector2(1,0))) #current angle
-
-	#bounce
-	if (angle>0 and angle<min_angle):
-		angle=angle-min_angle #<0
-	elif (angle<0 and angle>-min_angle):
-		angle=angle+min_angle #>0
-	elif (angle>180-min_angle and angle<180):
-		angle=angle-180+min_angle #>0
-	elif (angle<-180+min_angle and angle>-180):
-		angle=angle+180-min_angle #<0
+func adjust_angle() -> void:
+	var min_angle := 20.0
+	var lv := linear_velocity.normalized() * speed
+	if lv.length() < 1.0:
+		return
+	var angle := rad_to_deg(lv.angle_to(Vector2(1, 0)))
+	if angle > 0.0 and angle < min_angle:
+		angle = angle - min_angle
+	elif angle < 0.0 and angle > -min_angle:
+		angle = angle + min_angle
+	elif angle > 180.0 - min_angle and angle < 180.0:
+		angle = angle - 180.0 + min_angle
+	elif angle < -180.0 + min_angle and angle > -180.0:
+		angle = angle + 180.0 - min_angle
 	else:
-		angle=0
-	if angle!=0:
-		lv= lv.rotated(deg2rad(angle)) # we change the angle, but keep the speed
-		set_linear_velocity(lv) 
+		angle = 0.0
+	if angle != 0.0:
+		linear_velocity = lv.rotated(deg_to_rad(angle))
 
 
-func start(from_paddle=true): #balls don't start from the paddle when they are created by the three balls bonus
-	is_starting = from_paddle 
+func start(from_paddle := true) -> void:
+	is_starting = from_paddle
 	set_active(true)
-	var lv=Vector2(rand_range(-200,200),-200).normalized()*speed #starting velocity, with random angle
-	set_linear_velocity(lv)
+	var lv := Vector2(randf_range(-0.75, 0.75), -1.0).normalized() * speed
+	linear_velocity = lv
 
-func paddle_hit(object,action,data):
-	if board.sticky:
-		active=false #sticky bonus, stop the ball
+
+func paddle_hit(_object, _action, data) -> void:
+	if board and board.sticky:
+		active = false
 	if active:
-		nc.remove_observer(self,"paddle_moved") #when the ball is active, it doesn't stick to the paddle anymore
+		nc.remove_observer(self, "paddle_moved")
 	else:
-		relative_pos_x = data #this happens when the sticky bonus has been caught
-		nc.add_observer(self,"paddle_moved","follow_paddle")
+		relative_pos_x = float(data)
+		nc.add_observer(self, "paddle_moved", "follow_paddle")
 
-func follow_paddle(object,action,data):
-	var pos = data
-	pos.y=pos.y-15
-	pos.x=pos.x+relative_pos_x #sticky bonus again. we want ball to stick to the hit point of the paddle
-	pos.x=clamp(pos.x,15,get_viewport_rect().size.x-15)
+
+func follow_paddle(_object, _action, data) -> void:
+	var pos: Vector2 = data
+	var radius := float(global.metrics().ball_r)
+	pos.y = pos.y - global.PADDLE_VISUAL_HEIGHT * 0.5 - radius - 3.0
+	pos.x = pos.x + relative_pos_x
+	var m: Dictionary = global.metrics()
+	pos.x = clampf(pos.x, m.left + radius, m.right - radius)
 	paddle_position = pos
-	position = paddle_position
+	global_position = paddle_position
 
-func set_active(is_active):
-	active=is_active
-		
-func set_speed(new_speed):
-	speed=new_speed
-	
-func get_speed():
-	return speed
 
+func set_active(is_active: bool) -> void:
+	active = is_active
+
+
+func set_speed(new_speed: float) -> void:
+	speed = new_speed

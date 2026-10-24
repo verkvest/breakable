@@ -1,29 +1,23 @@
-extends Popup
+extends CanvasLayer
 
-onready var delegate  = self 
-#the delegate object can define the callback functions
-#it should be set by the object creating the PauseDialog
-
-func _draw():
-	var r = Rect2($CenterContainer.rect_position,$CenterContainer.rect_size)
-	draw_rect(r,Color(1,1,1,.5))
-
-			
-func _input(event):
-	# continue if user hits ESC 
-	if event.is_action("ui_cancel") and not event.is_pressed() : 
-		get_tree().set_input_as_handled()
-		_on_btn_continue_pressed()
-	pass
-
-func _on_btn_abandon_pressed():
-	var response = {"message":"Cancel"}
-	if delegate.has_method("close_dialog"):
-		delegate.close_dialog(self,response)
+var delegate
 
 
-func _on_btn_continue_pressed():
-	var response = {"message":"Continue"}
-	if delegate.has_method("close_dialog"):
-		delegate.close_dialog(self,response)
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_WHEN_PAUSED
 
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_on_continue_pressed()
+
+
+func _on_continue_pressed() -> void:
+	if delegate and delegate.has_method("close_dialog"):
+		delegate.close_dialog(self, {"message": "Continue"})
+
+
+func _on_abandon_pressed() -> void:
+	if delegate and delegate.has_method("close_dialog"):
+		delegate.close_dialog(self, {"message": "Cancel"})

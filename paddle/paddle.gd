@@ -1,81 +1,87 @@
-
 extends Node2D
 
-#autoload singletons
-# nc
-# global
-
-var center #of the viewport
 var board
-export(float) var paddle_width=0 setget set_paddle_width
-
-func _ready():
-
-	paddle_width=global.INITIAL_PADDLE_WIDTH
-	#paddle initial pos
-	self.position.x = get_viewport_rect().size.x/2
-
-	center = get_viewport_rect().size/2;
-	get_viewport().warp_mouse(center)
-
-	set_physics_process(true)
+var paddle_width := 120.0
 
 
-# mouse movement
-func _physics_process(delta):
-
-	var mouse_pos = get_viewport().get_mouse_position()
-	var size = get_viewport_rect().size
-	position.x = clamp(mouse_pos.x,0,size.x)
-
-	if board.sticky || !board.playing:
-		nc.post_notification("paddle_moved",position)
-
-# collision
-func _on_Area2D_body_enter( body ):
-	if body.has_meta("type"):
-		if body.get_meta("type")=="ball":
-			var velocity = body.get_linear_velocity()
-			velocity.y=-velocity.y # simple bounce
-
-			var body_pos = body.position
-			var paddle_pos = position
-			var relative_pos_x = body_pos.x-paddle_pos.x
-			nc.post_notification( "paddle_hit",relative_pos_x)
-			var coeff = (body_pos.x-paddle_pos.x)/paddle_width # -0,5 .. 0,5 , depending on where the ball hits the paddle
-			var angle =  coeff*PI/2.4
-			velocity = velocity.rotated(angle) # relative rotation, keeps speed
-			body.set_linear_velocity(velocity)
-			body.adjust_angle() #let the ball adjust the angle so the game keeps being playable
-
-		elif body.get_meta("type")=="bonus":
-			nc.post_notification("bonus_hit",body)
+func _ready() -> void:
+	set_paddle_width(global.metrics().paddle_w)
 
 
-func update_paddle():
-	if has_node("paddle_area"):
-		var paddle_area = $paddle_area
-		if(paddle_area.get_shape_owners().empty()):
-			paddle_area.create_shape_owner(paddle_area)
-		var so = paddle_area.get_shape_owners()[0]
-		paddle_area.shape_owner_clear_shapes(so)
-
-		var r = RectangleShape2D.new()
-		r.set_extents(Vector2(paddle_width/2,global.PADDLE_HEIGHT/2))
-		paddle_area.shape_owner_add_shape(so,r)
-		update()
-
-func set_paddle_width(pw): #size changes with SMALL_PADDLE and BIG_PADDLE bonus
-	if paddle_width!=pw:
-		paddle_width=pw
-		if has_node("left"):
-			$left.position.x = -paddle_width/2
-		if(has_node("right")):
-	#		$right.set_pos(pos)
-			$right.position.x = paddle_width/2-16
-		if(has_node("middle")):
-			$middle.set_scale(Vector2(paddle_width/20.0-1.5,1))
-		update_paddle()
+func move_to_x(x: float) -> void:
+	var m: Dictionary = global.metrics()
+	var half := paddle_width * 0.5
+	position.x = clampf(x, m.left + half, m.right - half)
+	position.y = m.paddle_y
+	_notify_moved()
 
 
+func sync() -> void:
+	var m: Dictionary = global.metrics()
+	position.y = m.paddle_y
+	var half := paddle_width * 0.5
+	position.x = clampf(position.x, m.left + half, m.right - half)
+	_notify_moved()
 
+
+func _notify_moved() -> void:
+	if board and (board.sticky or not board.playing):
+		nc.post_notification("paddle_moved", position)
+
+
+func set_paddle_width(pw: float) -> void:
+	var m: Dictionary = global.metrics()
+	paddle_width = clampf(pw, m.paddle_w * 0.55, m.width * 0.78)
+	_update_visual()
+	_update_shape()
+	if is_inside_tree() and board:
+		move_to_x(position.x)
+
+
+func _update_shape() -> void:
+	var col := get_node_or_null("paddle_area/CollisionShape2D") as CollisionShape2D
+	if col == null:
+		return
+	var shape := RectangleShape2D.new()
+	shape.size = Vector2(paddle_width, global.PADDLE_VISUAL_HEIGHT)
+	col.shape = shape
+
+
+func _update_visual() -> void:
+	var scale_y := global.PADDLE_VISUAL_HEIGHT / 15.0
+	var cap_w := 16.0 * scale_y
+	if has_node("left"):
+		$left.centered = false
+		$left.scale = Vector2(scale_y, scale_y)
+		$left.position = Vector2(-paddle_width * 0.5, -global.PADDLE_VISUAL_HEIGHT * 0.5)
+	if has_node("right"):
+		$right.centered = false
+		$right.scale = Vector2(scale_y, scale_y)
+		$right.position = Vector2(paddle_width * 0.5 - cap_w, -global.PADDLE_VISUAL_HEIGHT * 0.5)
+	if has_node("middle"):
+		var mid_w := maxf(paddle_width - cap_w * 2.0, 4.0)
+		$middle.scale = Vector2(mid_w / 20.0, scale_y)
+		$middle.position = Vector2(0, 0)
+
+
+func _on_area_body_entered(body: Node) -> void:
+	if not body.has_meta("type"):
+		return
+	if body.get_meta("type") == "ball":
+		var ball := body as RigidBody2D
+		if ball == null:
+			return
+		var velocity: Vector2 = ball.linear_velocity
+		velocity.y = -absf(velocity.y)
+		var relative: float = ball.position.x - position.x
+		nc.post_notification("paddle_hit", relative)
+		var coeff: float = relative / maxf(paddle_width, 1.0)
+		var angle: float = coeff * PI / 2.4
+		velocity = velocity.rotated(angle)
+		if velocity.length() > 1.0:
+			var spd: float = float(ball.get("speed"))
+			ball.linear_velocity = velocity.normalized() * spd
+		if ball.has_method("adjust_angle"):
+			ball.adjust_angle()
+	elif body.get_meta("type") == "bonus":
+		nc.post_notification("bonus_hit", body)

@@ -1,19 +1,23 @@
 extends Node
 
 
-func read_options():
-	var options = {}
-	var f = File.new()
-	if f.file_exists("user://options.data"):
-		var err = f.open("user://options.data",File.READ)
-		options = f.get_var()
-		f.close()
-	return options
+func read_options() -> Dictionary:
+	if not FileAccess.file_exists("user://options.data"):
+		return {}
+	var f := FileAccess.open("user://options.data", FileAccess.READ)
+	if f == null:
+		return {}
+	var data = f.get_var()
+	f.close()
+	if data is Dictionary:
+		return data
+	return {}
 
-func write_options(options):
-	var f = File.new()
-	var err = f.open("user://options.data",File.WRITE) #will create or replace the file
+
+func write_options(options: Dictionary) -> void:
+	var f := FileAccess.open("user://options.data", FileAccess.WRITE)
+	if f == null:
+		push_error("Could not write user://options.data")
+		return
 	f.store_var(options)
 	f.close()
-
-
