@@ -97,7 +97,8 @@ jobs:
           APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
           APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
           BUNDLE_NAME: Clinkwell
-        run: "$PY" tools/asc_bundle_id.py
+        run: |
+          "$PY" tools/asc_bundle_id.py
 
       - name: Stamp build number and export the Xcode project
         if: env.HAS_KEY == 'true'
