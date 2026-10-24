@@ -2,7 +2,7 @@
 .import/
 export/
 build/
-android/
+/android/
 .DS_Store
 *.keystore
 *.apk
