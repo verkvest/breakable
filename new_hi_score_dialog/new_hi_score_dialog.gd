@@ -18,7 +18,8 @@ func show_for(value: int, new_delegate) -> void:
 
 
 func _submit() -> void:
-	var playername := $Card/Column/Name.text
+	var field := $Card/Column/Name as LineEdit
+	var playername: String = field.text if field else ""
 	if delegate and delegate.has_method("close_hi_score_dialog"):
 		delegate.close_hi_score_dialog(self, playername)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE

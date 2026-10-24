@@ -115,6 +115,17 @@ jobs:
               (dest / name).write_text(body)
               print("wrote", dest / name)
           PY
+      - name: Install the Android build template
+        run: |
+          SRC="$HOME/.local/share/godot/export_templates/${GODOT_TEMPLATE_VERSION}/android_source.zip"
+          test -f "$SRC"
+          rm -rf android/build
+          mkdir -p android/build
+          unzip -q "$SRC" -d android/build
+          printf '%s\n' "${GODOT_TEMPLATE_VERSION}" > android/.build_version
+          : > android/build/.gdignore
+          chmod +x android/build/gradlew
+          test -f android/build/build.gradle
       - name: Stamp version and export
         env:
           BUILD_NUMBER: ${{ github.run_number }}

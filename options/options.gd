@@ -1,7 +1,7 @@
 extends Control
 
 var options: Dictionary = {}
-var languages := ["en", "fr"]
+var languages: PackedStringArray = ["en", "fr"]
 
 
 func _ready() -> void:
@@ -26,7 +26,7 @@ func _on_back_pressed() -> void:
 func _on_language_selected(index: int) -> void:
 	if index < 0 or index >= languages.size():
 		return
-	var locale := languages[index]
+	var locale: String = languages[index]
 	TranslationServer.set_locale(locale)
 	options["locale"] = locale
 	options_manager.write_options(options)
